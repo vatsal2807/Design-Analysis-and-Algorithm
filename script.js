@@ -1,5 +1,6 @@
 /**
-  DAA ALGORITHM ENGINE & CLIENT-SIDE PLAGIARISM CHECKER
+ * DAA ALGORITHM ENGINE & CLIENT-SIDE PLAGIARISM CHECKER
+ *Hybrid Rabin-Karp Pre-filtering & LCS Verification
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -128,7 +129,7 @@ function computeLCSLength(str1, str2) {
 }
 
 /* ============================================================================
- * 3. UI CONTROLLERS & PLAGIARISM THRESHOLD STYLING
+ * 3. HYBRID PLAGIARISM ANALYSIS & UI CONTROLLERS
  * ============================================================================ */
 
 function runPlagiarismAnalysis() {
@@ -144,29 +145,48 @@ function runPlagiarismAnalysis() {
     spinner.classList.remove('hidden');
 
     setTimeout(() => {
-        const t0LCS = performance.now();
-        const lcsLength = computeLCSLength(textA, textB);
-        const t1LCS = performance.now();
-        const lcsDuration = t1LCS - t0LCS;
+        const startTime = performance.now();
 
-        // Total character count based on the sum of characters from Doc A and Doc B
+        // 1. Define chunk size (k-grams) for Rabin-Karp pre-filtering
+        const k = 20; 
+        let lcsTotalLength = 0;
+
+        // 2. Hybrid Pipeline: Rabin-Karp Filter -> LCS Verification
+        if (textA.length >= k && textB.length >= k) {
+            for (let i = 0; i <= textA.length - k; i += k) {
+                const chunk = textA.substring(i, i + k);
+                
+                // Fast pre-filter using Rabin-Karp rolling hash
+                const matches = rabinKarpSearch(textB, chunk);
+                
+                if (matches.length > 0) {
+                    // Precision verification using DP LCS on the matched window
+                    const targetSubB = textB.substring(matches[0], matches[0] + k);
+                    const verifiedLength = computeLCSLength(chunk, targetSubB);
+                    lcsTotalLength += verifiedLength;
+                }
+            }
+        }
+
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+
+        // Calculate hybrid similarity percentage based on filtered chunks
         const totalChars = textA.length + textB.length;
-        
-        // Symmetric similarity calculation scaled against the combined total character pool
-        const similarityPct = totalChars === 0 ? 0 : Number((((2 * lcsLength) / totalChars) * 100).toFixed(2));
+        const similarityPct = totalChars === 0 ? 0 : Number((((2 * lcsTotalLength) / totalChars) * 100).toFixed(2));
 
         // Update Timestamp
         const now = new Date();
-        document.getElementById('computedTimestamp').innerText = `Computed @ ${now.toLocaleTimeString()}`;
+        document.getElementById('computedTimestamp').innerText = `Computed (Hybrid) @ ${now.toLocaleTimeString()}`;
 
         // Update Metrics in Dashboard
-        document.getElementById('similarityScoreText').innerText = similarityPct + '%';
-        document.getElementById('lcsMatchedLength').innerText = lcsLength;
+        document.getElementById('similarityScoreText').innerText = Math.min(similarityPct, 100) + '%';
+        document.getElementById('lcsMatchedLength').innerText = lcsTotalLength;
         document.getElementById('totalCharsLabel').innerText = `/ ${totalChars} Chars`;
-        document.getElementById('lcsTime').innerText = lcsDuration.toFixed(4) + ' ms';
+        document.getElementById('lcsTime').innerText = duration.toFixed(4) + ' ms';
 
         // Apply Color Coding & Plagiarism Status thresholds
-        applyPlagiarismStyling(similarityPct);
+        applyPlagiarismStyling(Math.min(similarityPct, 100));
 
         // Render plain text in comparison view initially
         document.getElementById('outputA').innerText = textA;
@@ -218,14 +238,12 @@ function executeTargetSearch() {
         return;
     }
 
-    // Case-insensitive search by running Rabin-Karp on lowercased texts/queries
     const matchesA = rabinKarpSearch(textA.toLowerCase(), query.toLowerCase());
     const matchesB = rabinKarpSearch(textB.toLowerCase(), query.toLowerCase());
     const totalMatches = matchesA.length + matchesB.length;
 
     document.getElementById('searchMatchCount').innerText = `Matches found: ${totalMatches} (Data A: ${matchesA.length}, Data B: ${matchesB.length})`;
 
-    // Pass original text and query length so highlighting preserves original casing
     renderHighlightedHTML('outputA', textA, matchesA, query.length);
     renderHighlightedHTML('outputB', textB, matchesB, query.length);
 }
