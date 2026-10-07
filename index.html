@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAA Plagiarism & Text Intelligence Engine</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for High-Tech Aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PDF.js CDN for Client-Side PDF Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <style>
+        .analysis-dashboard-card {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            color: #f8fafc;
+        }
+        .dashboard-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .dashboard-title-area h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .dashboard-subtext {
+            color: #94a3b8;
+            font-size: 0.875rem;
+        }
+        .computed-badge {
+            background: #065f46;
+            color: #34d399;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-family: 'Fira Code', monospace;
+            border: 1px solid #059669;
+        }
+        .metrics-cards-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .sub-metric-card {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid #334155;
+        }
+        .metric-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+        .metric-value-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .metric-big-num {
+            font-size: 1.8rem;
+            font-weight: 700;
+            font-family: 'Fira Code', monospace;
+        }
+        .metric-sub-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            padding-bottom: 4px;
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s ease, background-color 0.4s ease;
+        }
+        .plagiarism-status-msg {
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+        .metric-footer-text {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="pulsing-core"></div>
+                <h1>Match<span>Sphere</span></h1>
+            </div>
+            <p class="subtitle">Substring Matching & Plagiarism Detector</p>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main class="dashboard">
+            <!-- Input Section -->
+            <section class="card input-section">
+                <h2><span class="icon">📥</span>Data Input Portals</h2>
+                <div class="inputs-grid">
+                    <!-- Text Box A -->
+                    <div class="terminal-box">
+                        <div class="terminal-header">
+                            <label for="textA">Document A</label>
+                            <input type="file" id="fileA" class="file-input" accept=".txt,.pdf,.js,.py,.java,.cpp,.c,.html,.css,.json,.md">
+                            <button class="btn-sm" onclick="document.getElementById('fileA').click()">Upload File</button>
+                        </div>
+                        <textarea id="textA" placeholder="Paste source text/code here or upload file (.txt, .pdf, .js, .py, etc.)..."></textarea>
+                    </div>
+                    <!-- Text Box B -->
+                    <div class="terminal-box">
+                        <div class="terminal-header">
+                            <label for="textB">Document B</label>
+                            <input type="file" id="fileB" class="file-input" accept=".txt,.pdf,.js,.py,.java,.cpp,.c,.html,.css,.json,.md">
+                            <button class="btn-sm" onclick="document.getElementById('fileB').click()">Upload File</button>
+                        </div>
+                        <textarea id="textB" placeholder="Paste target text/code here or upload file (.txt, .pdf, .js, .py, etc.)..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="action-bar">
+                    <button id="analyzeBtn" class="btn-glow">Initiate Scan</button>
+                    <div id="loadingSpinner" class="loader hidden"></div>
+                </div>
+            </section>
+
+            <!-- Results Section (Hidden by default) -->
+            <section id="resultsSection" class="results-section hidden">
+                <!-- Algorithmic Analysis Dashboard -->
+                <div class="analysis-dashboard-card">
+                    <div class="dashboard-top-row">
+                        <div class="dashboard-title-area">
+                            <h3>📊 Analysis Dashboard</h3>
+                            <p class="dashboard-subtext">Real-Time Text Comparison</p>
+                        </div>
+                        <div id="computedTimestamp" class="computed-badge">Computed @ --:--:--</div>
+                    </div>
+
+                    <div class="metrics-cards-grid-2">
+                        <!-- Card 1: Overall Similarity & Plagiarism Status -->
+                        <div class="sub-metric-card">
+                            <span class="metric-label">OVERALL SIMILARITY</span>
+                            <div class="metric-value-row">
+                                <span id="similarityScoreText" class="metric-big-num">0%</span>
+                                <span class="metric-sub-label">LCS Matrix</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div id="similarityProgressBar" class="progress-bar-fill"></div>
+                            </div>
+                            <div id="plagiarismStatusText" class="plagiarism-status-msg">Awaiting execution...</div>
+                        </div>
+
+                        <!-- Card 2: LCS Match Details -->
+                        <div class="sub-metric-card">
+                            <span class="metric-label">LCS MATCHED LENGTH</span>
+                            <div class="metric-value-row">
+                                <span id="lcsMatchedLength" class="metric-big-num" style="color: #38bdf8;">0</span>
+                                <span id="totalCharsLabel" class="metric-sub-label">/ 0 Chars</span>
+                            </div>
+                            <div class="metric-footer-text">Time: <span id="lcsTime">0.00 ms</span> | O(n*m)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Target Search & Highlight Bar -->
+                <div class="card search-card">
+                    <h3><span class="icon">🔍</span> Text Pattern & Match Scanner</h3>
+                    <div class="search-bar-group">
+                        <input type="text" id="targetSearchInput" placeholder="Enter target substring to scan & highlight across inputs...">
+                        <button id="searchBtn" class="btn-secondary">Execute Scan</button>
+                    </div>
+                    <div id="searchMatchCount" class="match-count-badge">Matches found: 0</div>
+                </div>
+
+                <!-- Highlighted Text Comparison View -->
+                <div class="card comparison-view">
+                    <h3>View</h3>
+                    <div class="comparison-grid">
+                        <div class="view-terminal">
+                            <h4>Data A</h4>
+                            <div id="outputA" class="highlight-output"></div>
+                        </div>
+                        <div class="view-terminal">
+                            <h4>Data B</h4>
+                            <div id="outputB" class="highlight-output"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
